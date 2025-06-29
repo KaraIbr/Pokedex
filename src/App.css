@@ -1,0 +1,400 @@
+/* Estilos Globales y Variables de Color */
+:root {
+  --color-rojo: #EF5350;
+  --color-rojo-hover: #D32F2F;
+  --color-azul: #2979FF;
+  --color-azul-hover: #1C56B9;
+  --color-amarillo: #FFCA28;
+  --color-fondo-oscuro: #212121;
+  --color-texto: #FFFFFF;
+  --color-fondo-carta: #424242;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: var(--color-fondo-oscuro);
+  color: var(--color-texto);
+}
+
+/* --- Estilos de la Landing Page --- */
+.landing-container {
+  height: 100vh;
+  width: 100vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* IMPORTANTE: Coloca la URL de tu imagen de fondo aquí */
+  background-image: url('./assets/fondolp.jpg');
+  background-size: cover;
+  background-position: center;
+}
+
+.landing-navbar {
+  width: 100%;
+  padding: 20px 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.landing-navbar img {
+  height: 80px; /* Ajusta el tamaño de tu logo */
+}
+
+.center-content {
+  flex-grow: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.find-pokemon-btn {
+  padding: 20px 40px;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: white;
+  background-color: var(--color-rojo);
+  border: none;
+  border-radius: 15px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+}
+
+.find-pokemon-btn:hover {
+  background-color: var(--color-rojo-hover);
+}
+
+/* --- Estilos de la Barra de Filtros (NUEVA VERSIÓN MEJORADA) --- */
+
+.filter-bar {
+  width: 100%;
+  background-color: #262626; /* Azul pastel de fondo */
+  padding: 20px 40px; /* Más espaciado interior */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1000;
+  box-sizing: border-box;
+  border-bottom: 3px solid #ffff15;
+  margin-bottom: 20px /* Borde inferior para dar profundidad */
+}
+
+.filter-bar .logo-link img {
+  height: 75px;
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.filter-bar .logo-link img:hover {
+  transform: scale(1.1); /* Efecto de zoom al pasar el mouse */
+}
+
+.filters-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px; /* Espacio entre las filas de filtros */
+  flex-grow: 1;
+  margin: 0 30px;
+}
+
+.main-filters, .range-filters {
+  display: flex;
+  gap: 15px;
+  justify-content: center;
+}
+
+/* Estilo y color de los inputs y selectores */
+.filter-bar input, .filter-bar select {
+  background-color: #f8f9fa; /* Fondo casi blanco */
+  border: 2px solid #f3febd; /* Borde azul pastel claro */
+  border-radius: 12px; /* Esquinas más redondeadas */
+  padding: 12px 15px; /* Más espaciado interno */
+  font-size: 0.95rem;
+  color: #333;
+  width: 160px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Placeholder (texto de ejemplo) más sutil */
+.filter-bar input::placeholder {
+  color: #999;
+}
+
+/* Efecto al pasar el mouse o seleccionar un input */
+.filter-bar input:hover, .filter-bar select:hover,
+.filter-bar input:focus, .filter-bar select:focus {
+  outline: none;
+  border-color: #fdffb6; /* Borde amarillo pastel al seleccionar */
+  box-shadow: 0 0 8px rgba(253, 255, 182, 0.7); /* Sombra amarilla */
+}
+
+/* Estilo del botón "Consultar" */
+.consultar-btn {
+  padding: 12px 30px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #4A4A4A; /* Texto oscuro para contraste */
+  background-color: #fcff3e; /* Verde pastel */
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+}
+
+.consultar-btn:hover {
+  background-color: #fdffb6; /* Amarillo pastel al pasar el mouse */
+  transform: translateY(-2px); /* Efecto de "levantarse" */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+/* --- Estilos de las Cartas Pokémon --- */
+.pokemon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 20px;
+  padding: 10px 5%;
+}
+.finder-container {
+  /* Prepara el contenedor para la capa de fondo */
+  position: relative;
+  z-index: 1;
+}
+
+/* Esta es la capa que contiene tu imagen de fondo con opacidad */
+.finder-container::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  
+  /* Ruta a tu imagen desde App.css */
+  background-image: url('./assets/fondop.jpg'); 
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  
+  /* Opacidad del 20% (el 80% que pediste sería muy visible, 
+     20% es más tenue y no distrae) */
+  opacity: 0.4; 
+  
+  /* Asegura que la capa de fondo esté detrás del contenido */
+  z-index: -1; 
+}
+
+/* --- Estilos de las Cartas Pokémon (NUEVA VERSIÓN MEJORADA) --- */
+.pokemon-card {
+  background: linear-gradient(145deg, #4a4a4a, #3c3c3c); /* Degradado sutil */
+  border-radius: 20px; /* Esquinas más redondeadas */
+  padding: 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease-in-out;
+  border: 3px solid transparent; /* Borde inicial transparente */
+  box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.4), 
+              -5px -5px 15px rgba(255, 255, 255, 0.05); /* Efecto de relieve */
+  position: relative;
+  overflow: hidden; /* Oculta partes del pseudo-elemento que se salgan */
+}
+
+.pokemon-card:hover {
+  transform: translateY(-10px) scale(1.03); /* Levanta y agranda la carta */
+  box-shadow: 8px 8px 20px rgba(0, 0, 0, 0.5), 
+              -8px -8px 20px rgba(255, 255, 255, 0.08);
+  border-color: var(--color-amarillo); /* Borde amarillo al pasar el mouse */
+}
+
+/* Efecto de brillo sutil en la esquina */
+.pokemon-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,255,255,0.1), transparent 30%);
+  transform: rotate(45deg);
+  transition: opacity 0.4s ease;
+  opacity: 0;
+}
+
+.pokemon-card:hover::before {
+  opacity: 1;
+}
+
+.pokemon-card img {
+  width: 150px;
+  height: 150px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 50%;
+  margin-bottom: 15px; /* Más espacio debajo de la imagen */
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.5)); /* Sombra para la imagen */
+}
+
+.pokemon-card h3 {
+  margin: 10px 0 5px;
+  text-transform: capitalize;
+  color: var(--color-amarillo);
+  font-size: 1.4rem;
+}
+
+.pokemon-type {
+  display: inline-block;
+  padding: 3px 10px;
+  border-radius: 10px;
+  margin: 0 5px;
+  font-size: 0.8rem;
+  font-weight: bold;
+  color: black;
+}
+
+/* --- Estilos del Modal (Vista Detallada) --- */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: var(--color-fondo-carta);
+  padding: 30px;
+  border-radius: 20px;
+  width: 90%;
+  max-width: 600px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  border: 3px solid var(--color-amarillo);
+  text-align: center;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 15px;
+  right: 20px;
+  background: var(--color-rojo);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  width: 35px;
+  height: 35px;
+  font-size: 1.2rem;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+.modal-content img {
+  width: 200px;
+  height: 200px;
+}
+
+.modal-content h2 {
+  color: var(--color-amarillo);
+  text-transform: capitalize;
+}
+
+/* --- Estilos del Componente de Paginación --- */
+
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;
+  gap: 50px;
+}
+
+.pagination-btn {
+  background-color: #fdff9b; /* Botón azul */
+  color: rgb(0, 0, 0);
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  background-color: #fcff3e; /* Azul más oscuro */
+  transform: translateY(-2px);
+}
+
+.pagination-btn:disabled {
+  background-color: #555; /* Color gris para el botón desactivado */
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.page-info {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #FFFFFF;
+}
+
+/* --- Estilos para el Layout del Modal Mejorado --- */
+
+.modal-header {
+  text-align: center;
+  margin-bottom: 25px;
+}
+
+.modal-body {
+  display: flex;
+  justify-content: space-around;
+  text-align: left;
+  gap: 20px; /* Espacio entre columnas */
+}
+
+.modal-column {
+  width: 45%; /* Cada columna ocupa el 45% del espacio */
+}
+
+.modal-column h4 {
+  color: var(--color-amarillo);
+  border-bottom: 2px solid var(--color-amarillo);
+  padding-bottom: 5px;
+  margin-bottom: 15px;
+}
+
+.modal-column p {
+  margin: 10px 0;
+}
+
+.modal-column strong {
+  color: #ffb341; /* Un azul claro para resaltar los títulos */
+}
+
+/* --- Estilos para los Controles de Orden --- */
+.sort-controls {
+  display: flex;
+  flex-direction: column; /* Coloca los selectores uno encima del otro */
+  gap: 10px; /* Espacio entre los selectores */
+  margin: 0 20px; /* Margen para separarlo de los filtros y el botón */
+}
+
+.sort-controls select {
+  background-color: #f8f9fa;
+  border: 2px solid #bde0fe;
+  border-radius: 8px;
+  padding: 8px; /* Un poco más pequeños que los filtros principales */
+  font-size: 0.9rem;
+  color: #333;
+}
