@@ -1,15 +1,8 @@
-// src/components/PokemonModal.js
-
 import React from 'react';
+import { getStatValue, formatWeight, formatHeight, formatPokemonId } from '../utils/pokemonUtils';
 
 const PokemonModal = ({ pokemon, onClose }) => {
   if (!pokemon) return null;
-
-  // Función para obtener una estadística por su nombre
-  const getStat = (name) => {
-    const stat = pokemon.stats.find(statInfo => statInfo.stat.name === name);
-    return stat ? stat.base_stat : 'N/A';
-  };
 
   return (
     <div className="modal-overlay" onClick={onClose}>
@@ -19,7 +12,7 @@ const PokemonModal = ({ pokemon, onClose }) => {
         {/* ---- SECCIÓN SUPERIOR: IMAGEN Y TÍTULO ---- */}
         <div className="modal-header">
           <img src={pokemon.sprites.other['official-artwork'].front_default} alt={pokemon.name} />
-          <h2>{pokemon.name} - #{pokemon.id.toString().padStart(3, '0')}</h2>
+          <h2>{pokemon.name} - #{formatPokemonId(pokemon.id)}</h2>
         </div>
 
         {/* ---- SECCIÓN INFERIOR: DOS COLUMNAS ---- */}
@@ -27,24 +20,24 @@ const PokemonModal = ({ pokemon, onClose }) => {
           {/* COLUMNA IZQUIERDA */}
           <div className="modal-column">
             <h4>Estadísticas Base</h4>
-            <p><strong>HP:</strong> {getStat('hp')}</p>
-            <p><strong>Ataque:</strong> {getStat('attack')}</p>
-            <p><strong>Defensa:</strong> {getStat('defense')}</p>
-            <p><strong>Ataque Especial:</strong> {getStat('special-attack')}</p>
+            <p><strong>HP:</strong> {getStatValue(pokemon.stats, 'hp')}</p>
+            <p><strong>Ataque:</strong> {getStatValue(pokemon.stats, 'attack')}</p>
+            <p><strong>Defensa:</strong> {getStatValue(pokemon.stats, 'defense')}</p>
+            <p><strong>Ataque Especial:</strong> {getStatValue(pokemon.stats, 'special-attack')}</p>
           </div>
 
           {/* COLUMNA DERECHA */}
           <div className="modal-column">
             <h4>Más Detalles</h4>
-            <p><strong>Velocidad:</strong> {getStat('speed')}</p>
+            <p><strong>Velocidad:</strong> {getStatValue(pokemon.stats, 'speed')}</p>
             <div>
               <strong>Habilidades:</strong>
               <p>{pokemon.abilities.map(abilityInfo => abilityInfo.ability.name).join(', ')}</p>
             </div>
             <div>
               <strong>Información Adicional:</strong>
-              <p>Altura: {pokemon.height / 10} m</p>
-              <p>Peso: {pokemon.weight / 10} kg</p>
+              <p>Altura: {formatHeight(pokemon.height)} m</p>
+              <p>Peso: {formatWeight(pokemon.weight)} kg</p>
             </div>
           </div>
         </div>
