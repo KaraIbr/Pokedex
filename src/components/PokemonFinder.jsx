@@ -6,6 +6,7 @@ import FilterBar from './FilterBar';
 import PokemonCard from './PokemonCard';
 import PokemonModal from './PokemonModal';
 import Pagination from './Pagination';
+import Footer from './Footer';
 
 const generationMap = [
     { limit: 151, name: 'I' }, { limit: 251, name: 'II' },
@@ -181,6 +182,8 @@ const PokemonFinder = () => {
                 )}
             </main>
             {selectedPokemon && <PokemonModal pokemon={selectedPokemon} onClose={handleCloseModal} />}
+                <Footer/>
+
         </div>
     );
 };
