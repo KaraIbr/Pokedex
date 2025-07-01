@@ -1,57 +1,41 @@
 // Configuración de paginación
 export const PAGINATION = {
   POKEMONS_PER_PAGE: 30,
-  MAX_POKEMON_ID: 1025,
-};
-
-// Mapeo de generaciones
-export const GENERATION_MAP = [
-  { limit: 151, name: 'I', displayName: 'Generación I (Kanto)' },
-  { limit: 251, name: 'II', displayName: 'Generación II (Johto)' },
-  { limit: 386, name: 'III', displayName: 'Generación III (Hoenn)' },
-  { limit: 493, name: 'IV', displayName: 'Generación IV (Sinnoh)' },
-  { limit: 649, name: 'V', displayName: 'Generación V (Unova)' },
-  { limit: 721, name: 'VI', displayName: 'Generación VI (Kalos)' },
-  { limit: 809, name: 'VII', displayName: 'Generación VII (Alola)' },
-  { limit: 905, name: 'VIII', displayName: 'Generación VIII (Galar)' },
-  { limit: 1025, name: 'IX', displayName: 'Generación IX (Paldea)' }
-];
-
-// Colores de tipos de Pokémon
-export const TYPE_COLORS = {
-  fire: '#FFA07A',
-  grass: '#98FB98',
-  water: '#87CEEB',
-  bug: '#B0E0A6',
-  normal: '#D3D3D3',
-  poison: '#EE82EE',
-  electric: '#FFFF00',
-  ground: '#F4A460',
-  fairy: '#FFC0CB',
-  fighting: '#FF6347',
-  psychic: '#FFB6C1',
-  rock: '#BDB76B',
-  ghost: '#9370DB',
-  ice: '#ADD8E6',
-  dragon: '#6495ED',
-  dark: '#A9A9A9',
-  steel: '#C0C0C0',
-  flying: '#E6E6FA'
+  MAX_POKEMON_ID: 1025
 };
 
 // Tipos de Pokémon disponibles
 export const POKEMON_TYPES = [
-  'fire', 'grass', 'water', 'bug', 'normal', 'poison',
-  'electric', 'ground', 'fairy', 'fighting', 'psychic',
-  'rock', 'ghost', 'ice', 'dragon', 'dark', 'steel', 'flying'
+  "normal", "fire", "water", "grass", "electric", "ice", "fighting", "poison", "ground", 
+  "flying", "psychic", "bug", "rock", "ghost", "dragon", "dark", "steel", "fairy"
 ];
 
-// Estados de filtros por defecto
+// Colores para cada tipo de Pokémon
+export const TYPE_COLORS = {
+  normal: '#A8A878',
+  fire: '#F08030',
+  water: '#6890F0',
+  grass: '#78C850',
+  electric: '#F8D030',
+  ice: '#98D8D8',
+  fighting: '#C03028',
+  poison: '#A040A0',
+  ground: '#E0C068',
+  flying: '#A890F0',
+  psychic: '#F85888',
+  bug: '#A8B820',
+  rock: '#B8A038',
+  ghost: '#705898',
+  dragon: '#7038F8',
+  dark: '#705848',
+  steel: '#B8B8D0',
+  fairy: '#EE99AC'
+};
+
+// Filtros por defecto (inicializar como objetos vacíos para evitar undefined)
 export const DEFAULT_FILTERS = {
-  id: '',
-  nombre: '',
-  generacion: '',
-  tipo: '',
+  searchTerm: '',
+  type: '',
   hp: '',
   attack: '',
   defense: '',
@@ -59,7 +43,7 @@ export const DEFAULT_FILTERS = {
   height: ''
 };
 
-// Configuración de ordenamiento por defecto
+// Configuración de ordenamiento
 export const DEFAULT_SORT_CONFIG = {
   key: 'id',
   direction: 'ascending'
@@ -67,15 +51,9 @@ export const DEFAULT_SORT_CONFIG = {
 
 // Opciones de ordenamiento
 export const SORT_OPTIONS = [
-  { key: 'id', label: 'ID' },
-  { key: 'name', label: 'Nombre' },
-  { key: 'hp', label: 'HP' },
-  { key: 'attack', label: 'Ataque' },
-  { key: 'defense', label: 'Defensa' }
-];
-
-// Direcciones de ordenamiento
-export const SORT_DIRECTIONS = [
-  { key: 'ascending', label: 'Ascendente' },
-  { key: 'descending', label: 'Descendente' }
+  { key: 'id', label: 'Ordenar por ID' },
+  { key: 'name', label: 'Ordenar A - Z' },
+  { key: 'hp', label: 'Cantidad de HP' },
+  { key: 'attack', label: 'Cantidad de Ataque' },
+  { key: 'defense', label: 'Cantidad de Defensa' }
 ];

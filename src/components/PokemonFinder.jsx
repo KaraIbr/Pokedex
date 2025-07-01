@@ -1,154 +1,188 @@
-import React from 'react';
-import { usePokemon } from '../hooks/usePokemon';
-import { useModal } from '../hooks/useModal';
-import ImprovedFilterBar from './ImprovedFilterBar.jsx';
-import PokemonCard from './PokemonCard.jsx';
-import PokemonModal from './PokemonModal.jsx';
-import Pagination from './Pagination.jsx';
-import Footer from './Footer.jsx';
+// src/components/PokemonFinder.js
+
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
+import FilterBar from './FilterBar';
+import PokemonCard from './PokemonCard';
+import PokemonModal from './PokemonModal';
+import Pagination from './Pagination';
+
+const generationMap = [
+    { limit: 151, name: 'I' }, { limit: 251, name: 'II' },
+    { limit: 386, name: 'III' }, { limit: 493, name: 'IV' },
+    { limit: 649, name: 'V' }, { limit: 721, name: 'VI' },
+    { limit: 809, name: 'VII' }, { limit: 905, name: 'VIII' },
+    { limit: 1025, name: 'IX' }
+];
+
+const getGenerationById = (id) => {
+    for (const gen of generationMap) {
+        if (id <= gen.limit) return gen.name;
+    }
+    return 'Desconocida';
+};
+
+const POKEMONS_PER_PAGE = 30;
 
 const PokemonFinder = () => {
-  // Usar hooks personalizados para separar lógica
-  const {
-    pokemons,
-    loading,
-    error,
-    filters,
-    sortConfig,
-    currentPage,
-    totalPages,
-    updateFilter,
-    updateSortConfig,
-    resetFilters,
-    applyFiltersAndSort,
-    goToNextPage,
-    goToPrevPage,
-    loadMorePokemon,
-    hasResults,
-    totalResults,
-    canLoadMore
-  } = usePokemon();
+    // ---- ESTADOS ----
+    const [allPokemonReferences, setAllPokemonReferences] = useState([]);
+    const [filteredPokemons, setFilteredPokemons] = useState([]);
+    const [pokemons, setPokemons] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [selectedPokemon, setSelectedPokemon] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(0);
+    const [filters, setFilters] = useState({
+        id: '', nombre: '', generacion: '', tipo: '',
+        hp: '', attack: '', defense: '', weight: '', height: ''
+    });
+    // Nuevo estado para la configuración de orden
+    const [sortConfig, setSortConfig] = useState({ key: 'id', direction: 'ascending' });
 
-  const {
-    isOpen: isModalOpen,
-    data: selectedPokemon,
-    openModal: openPokemonModal,
-    closeModal: closePokemonModal
-  } = useModal();
+    // ... (El useEffect inicial se mantiene igual)
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            setLoading(true);
+            try {
+                const allPokemonRes = await axios.get('https://pokeapi.co/api/v2/pokemon?limit=1025');
+                setAllPokemonReferences(allPokemonRes.data.results);
+                const randomIds = new Set();
+                while (randomIds.size < POKEMONS_PER_PAGE) {
+                    randomIds.add(Math.floor(Math.random() * 1025) + 1);
+                }
+                const randomPokemonPromises = [...randomIds].map(id => axios.get(`https://pokeapi.co/api/v2/pokemon/${id}`));
+                const randomPokemonResponses = await Promise.all(randomPokemonPromises);
+                const randomPokemonData = randomPokemonResponses.map(res => ({ ...res.data, generation: getGenerationById(res.data.id) }));
+                setFilteredPokemons(randomPokemonData);
+            } catch (error) {
+                console.error("Error al cargar datos iniciales:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchInitialData();
+    }, []);
 
-  // Manejadores de eventos simplificados
-  const handleFilterChange = (e) => {
-    const { name, value } = e.target;
-    updateFilter(name, value);
-  };
+    useEffect(() => {
+        const startIndex = (currentPage - 1) * POKEMONS_PER_PAGE;
+        const endIndex = startIndex + POKEMONS_PER_PAGE;
+        setPokemons(filteredPokemons.slice(startIndex, endIndex));
+        setTotalPages(Math.ceil(filteredPokemons.length / POKEMONS_PER_PAGE));
+    }, [currentPage, filteredPokemons]);
 
-  const handleSortChange = (e) => {
-    const { name, value } = e.target;
-    updateSortConfig(name, value);
-  };
+    // ---- MANEJADORES DE EVENTOS ----
+    const handleFilterChange = (e) => {
+        const { name, value } = e.target;
+        const numericFields = ['hp', 'attack', 'defense', 'weight', 'height', 'id'];
+        if (numericFields.includes(name)) {
+            const regex = /^\d*\.?\d*$/;
+            if (regex.test(value)) {
+                setFilters(prevFilters => ({ ...prevFilters, [name]: value }));
+            }
+        } else {
+            setFilters(prevFilters => ({ ...prevFilters, [name]: value }));
+        }
+    };
 
-  const handleCardClick = (pokemon) => {
-    openPokemonModal(pokemon);
-  };
+    // Nuevo manejador para el cambio de orden
+    const handleSortChange = (e) => {
+        const { name, value } = e.target;
+        setSortConfig(prevConfig => ({ ...prevConfig, [name]: value }));
+    };
 
-  const handleResetFilters = () => {
-    resetFilters();
-    applyFiltersAndSort();
-  };
+    const handleApplyFilters = async () => {
+        setLoading(true);
+        setCurrentPage(1);
+        try {
+            let results = [...allPokemonReferences];
+            if (filters.id) results = results.filter(p => p.url.split('/')[6] === filters.id);
+            if (filters.nombre) results = results.filter(p => p.name.includes(filters.nombre.toLowerCase()));
 
-  // Renderizado condicional para errores
-  if (error) {
+            const detailPromises = results.map(p => axios.get(p.url));
+            const detailResponses = await Promise.all(detailPromises);
+            let detailedPokemons = detailResponses.map(res => ({ ...res.data, generation: getGenerationById(res.data.id) }));
+
+            if (filters.generacion) detailedPokemons = detailedPokemons.filter(p => p.generation === filters.generacion);
+            if (filters.tipo) detailedPokemons = detailedPokemons.filter(p => p.types.some(typeInfo => typeInfo.type.name === filters.tipo));
+            const statFilters = { hp: 'hp', attack: 'attack', defense: 'defense' };
+            for (const key in statFilters) {
+                if (filters[key]) detailedPokemons = detailedPokemons.filter(p => p.stats.find(s => s.stat.name === key)?.base_stat >= parseFloat(filters[key]));
+            }
+            if (filters.weight) detailedPokemons = detailedPokemons.filter(p => (p.weight / 10) >= parseFloat(filters.weight));
+            if (filters.height) detailedPokemons = detailedPokemons.filter(p => (p.height / 10) >= parseFloat(filters.height));
+            
+            // ===== LÓGICA DE ORDENACIÓN =====
+            detailedPokemons.sort((a, b) => {
+                let valA, valB;
+                // Asigna los valores a comparar según la clave de orden
+                if (['hp', 'attack', 'defense'].includes(sortConfig.key)) {
+                    valA = a.stats.find(s => s.stat.name === sortConfig.key)?.base_stat || 0;
+                    valB = b.stats.find(s => s.stat.name === sortConfig.key)?.base_stat || 0;
+                } else if (sortConfig.key === 'name') {
+                    valA = a.name;
+                    valB = b.name;
+                } else { // por defecto, ordena por ID
+                    valA = a.id;
+                    valB = b.id;
+                }
+                
+                // Realiza la comparación
+                if (valA < valB) {
+                    return sortConfig.direction === 'ascending' ? -1 : 1;
+                }
+                if (valA > valB) {
+                    return sortConfig.direction === 'ascending' ? 1 : -1;
+                }
+                return 0;
+            });
+
+            setFilteredPokemons(detailedPokemons);
+        } catch (error) {
+            console.error("Error al aplicar filtros:", error);
+            setFilteredPokemons([]);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleCardClick = (pokemon) => setSelectedPokemon(pokemon);
+    const handleCloseModal = () => setSelectedPokemon(null);
+
+    // ---- RENDERIZADO ----
     return (
-      <div className="finder-container">
-        <div className="error-message">
-          <h2>😞 Oops! Algo salió mal</h2>
-          <p>{error}</p>
-          <button onClick={() => window.location.reload()}>
-            Intentar de nuevo
-          </button>
+        <div className="finder-container">
+            <FilterBar 
+                filters={filters}
+                onFilterChange={handleFilterChange}
+                onApplyFilters={handleApplyFilters}
+                sortConfig={sortConfig}
+                onSortChange={handleSortChange}
+            />
+            <main>
+                {loading ? (
+                    <p style={{ textAlign: 'center', fontSize: '1.5rem' }}>Buscando...</p>
+                ) : pokemons.length > 0 ? (
+                    <>
+                        <div className="pokemon-grid">
+                            {pokemons.map(pokemon => (
+                                <PokemonCard key={pokemon.id} pokemon={pokemon} onCardClick={handleCardClick} />
+                            ))}
+                        </div>
+                        <Pagination 
+                            currentPage={currentPage}
+                            totalPages={totalPages}
+                            onNextPage={() => setCurrentPage(prev => Math.min(prev + 1, totalPages))}
+                            onPrevPage={() => setCurrentPage(prev => Math.max(prev - 1, 1))}
+                        />
+                    </>
+                ) : (
+                    <p style={{ textAlign: 'center', fontSize: '1.5rem' }}>No se encontraron Pokémon con esos criterios.</p>
+                )}
+            </main>
+            {selectedPokemon && <PokemonModal pokemon={selectedPokemon} onClose={handleCloseModal} />}
         </div>
-      </div>
     );
-  }
-
-  return (
-    <div className="finder-container">
-      <ImprovedFilterBar 
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        onApplyFilters={applyFiltersAndSort}
-        onResetFilters={handleResetFilters}
-        totalResults={totalResults}
-        loading={loading}
-      />
-      
-      <main>
-        {loading ? (
-          <div className="loading-container">
-            <div className="pokeball-loader"></div>
-            <p>Buscando Pokémon...</p>
-          </div>
-        ) : hasResults ? (
-          <>
-            <div className="results-info">
-              <p>Mostrando {pokemons.length} de {totalResults} Pokémon</p>
-            </div>
-            
-            <div className="pokemon-grid">
-              {pokemons.map(pokemon => (
-                <PokemonCard 
-                  key={pokemon.id} 
-                  pokemon={pokemon} 
-                  onCardClick={handleCardClick} 
-                />
-              ))}
-            </div>
-            
-            {totalPages > 1 && (
-              <Pagination 
-                currentPage={currentPage}
-                totalPages={totalPages}
-                onNextPage={goToNextPage}
-                onPrevPage={goToPrevPage}
-              />
-            )}
-            
-            {canLoadMore && (
-              <div className="load-more-section">
-                <p className="load-more-info">
-                  Mostrando {totalResults} Pokémon. ¿Quieres ver más?
-                </p>
-                <button 
-                  onClick={loadMorePokemon}
-                  className="load-more-btn"
-                  disabled={loading}
-                >
-                  {loading ? 'Cargando...' : '🔥 Cargar Más Pokémon (hasta 500)'}
-                </button>
-              </div>
-            )}
-          </>
-        ) : (
-          <div className="no-results">
-            <h2>🔍 No se encontraron Pokémon</h2>
-            <p>Intenta ajustar tus filtros de búsqueda</p>
-            <button onClick={handleResetFilters}>
-              Limpiar filtros
-            </button>
-          </div>
-        )}
-      </main>
-      
-      {isModalOpen && selectedPokemon && (
-        <PokemonModal 
-          pokemon={selectedPokemon} 
-          onClose={closePokemonModal} 
-        />
-      )}
-
-      <Footer />
-    </div>
-  );
 };
 
 export default PokemonFinder;

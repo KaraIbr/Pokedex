@@ -14,10 +14,16 @@ import {
 export const usePokemon = () => {
   // Estados principales
   const [allPokemonReferences, setAllPokemonReferences] = useState([]);
+  const [allPokemonData, setAllPokemonData] = useState([]);
   const [filteredPokemons, setFilteredPokemons] = useState([]);
   const [pokemons, setPokemons] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Estados de carga por lotes
+  const [loadingProgress, setLoadingProgress] = useState(0);
+  const [totalToLoad, setTotalToLoad] = useState(1050);
+  const [loadedCount, setLoadedCount] = useState(0);
   
   // Estados de paginación
   const [currentPage, setCurrentPage] = useState(1);
@@ -34,23 +40,13 @@ export const usePokemon = () => {
       setError(null);
       
       try {
-        // Cargar referencias de todos los Pokémon
+        // Cargar referencias de todos los Pokémon para saber el total
         const pokemonList = await PokemonService.getAllPokemonReferences();
         setAllPokemonReferences(pokemonList.results);
+        setTotalToLoad(Math.min(pokemonList.results.length, 1050));
         
-        // Cargar TODOS los Pokémon desde el inicio (1050 Pokémon)
-        const allIds = pokemonList.results.map((_, index) => index + 1).slice(0, 1050);
-        const allPokemons = await PokemonService.getPokemonByIds(allIds);
-        
-        // Agregar información de generación
-        const pokemonsWithGeneration = allPokemons.map(pokemon => ({
-          ...pokemon,
-          generation: getGenerationById(pokemon.id)
-        }));
-        
-        // Guardar todos los Pokémon como datos base
-        setFilteredPokemons(pokemonsWithGeneration);
-        setLoading(false);
+        // Comenzar carga por lotes
+        await loadPokemonInBatches(pokemonList.results);
         
       } catch (err) {
         setError(err.message);
@@ -61,6 +57,72 @@ export const usePokemon = () => {
 
     loadInitialData();
   }, []);
+
+  // Función para cargar Pokémon por lotes
+  const loadPokemonInBatches = async (pokemonReferences) => {
+    const BATCH_SIZE = 50; // Cargar 50 Pokémon por lote
+    const totalPokemon = Math.min(pokemonReferences.length, 1050);
+    const allLoadedPokemon = [];
+    
+    try {
+      // Cargar el primer lote inmediatamente para mostrar contenido
+      const firstBatchIds = Array.from({ length: Math.min(BATCH_SIZE, totalPokemon) }, (_, i) => i + 1);
+      const firstBatch = await PokemonService.getPokemonByIds(firstBatchIds);
+      
+      const firstBatchWithGeneration = firstBatch.map(pokemon => ({
+        ...pokemon,
+        generation: getGenerationById(pokemon.id)
+      }));
+      
+      allLoadedPokemon.push(...firstBatchWithGeneration);
+      setAllPokemonData([...allLoadedPokemon]);
+      setFilteredPokemons([...allLoadedPokemon]);
+      setLoadedCount(firstBatch.length);
+      setLoadingProgress((firstBatch.length / totalPokemon) * 100);
+      setLoading(false); // Ya podemos mostrar contenido
+      
+      // Cargar el resto en lotes en segundo plano
+      for (let i = BATCH_SIZE; i < totalPokemon; i += BATCH_SIZE) {
+        const batchIds = Array.from(
+          { length: Math.min(BATCH_SIZE, totalPokemon - i) }, 
+          (_, index) => i + index + 1
+        );
+        
+        try {
+          const batch = await PokemonService.getPokemonByIds(batchIds);
+          const batchWithGeneration = batch.map(pokemon => ({
+            ...pokemon,
+            generation: getGenerationById(pokemon.id)
+          }));
+          
+          allLoadedPokemon.push(...batchWithGeneration);
+          
+          // Actualizar estados
+          setAllPokemonData([...allLoadedPokemon]);
+          setLoadedCount(allLoadedPokemon.length);
+          setLoadingProgress((allLoadedPokemon.length / totalPokemon) * 100);
+          
+          // Reaplizar filtros si hay datos filtrados
+          if (allLoadedPokemon.length <= filteredPokemons.length || !filters.searchTerm) {
+            const sortedData = sortPokemons([...allLoadedPokemon], sortConfig);
+            const filteredData = applyFilters(sortedData, filters);
+            setFilteredPokemons(filteredData);
+          }
+          
+          // Pequeña pausa para no sobrecargar la API
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+        } catch (batchError) {
+          console.warn(`Error loading batch ${i}-${i + BATCH_SIZE}:`, batchError);
+          // Continuar con el siguiente lote aunque falle uno
+        }
+      }
+      
+    } catch (err) {
+      console.error('Error in batch loading:', err);
+      setError(err.message);
+    }
+  };
 
   // Función para ejecutar la búsqueda inicial completa
   const executeInitialSearch = async (pokemonReferences) => {
@@ -96,6 +158,58 @@ export const usePokemon = () => {
     setTotalPages(Math.ceil(filteredPokemons.length / PAGINATION.POKEMONS_PER_PAGE));
   }, [currentPage, filteredPokemons]);
 
+  // Actualizar filtros en tiempo real
+  useEffect(() => {
+    if (allPokemonData.length > 0) {
+      let filtered = allPokemonData;
+      
+      // Filtro por nombre
+      if (filters.searchTerm && filters.searchTerm.trim() !== '') {
+        filtered = filtered.filter(p => p.name.toLowerCase().includes(filters.searchTerm.toLowerCase()));
+      }
+      
+      // Filtro por tipo
+      if (filters.type && filters.type !== '') {
+        filtered = filtered.filter(p => p.types.some(t => t.type.name === filters.type));
+      }
+
+      // Filtro por habilidad
+      if (filters.ability && filters.ability !== '') {
+        filtered = filtered.filter(p => p.abilities.some(a => a.ability.name === filters.ability));
+      }
+
+      // Filtro por altura (height)
+      if (filters.height.min !== '' || filters.height.max !== '') {
+        filtered = filtered.filter(p => {
+          const height = p.height / 10; // La API devuelve la altura en decímetros
+          return (!filters.height.min || height >= Number(filters.height.min)) &&
+                 (!filters.height.max || height <= Number(filters.height.max));
+        });
+      }
+
+      // Filtros por stats base
+      const { stats } = filters;
+      if (Object.values(stats).some(stat => stat.min !== '' || stat.max !== '')) {
+        filtered = filtered.filter(p => {
+          const statsMap = p.stats.reduce((acc, s) => {
+            acc[s.stat.name] = s.base_stat;
+            return acc;
+          }, {});
+
+          return (!stats.hp.min || statsMap.hp >= Number(stats.hp.min)) &&
+                 (!stats.hp.max || statsMap.hp <= Number(stats.hp.max)) &&
+                 (!stats.attack.min || statsMap.attack >= Number(stats.attack.min)) &&
+                 (!stats.attack.max || statsMap.attack <= Number(stats.attack.max)) &&
+                 (!stats.defense.min || statsMap.defense >= Number(stats.defense.min)) &&
+                 (!stats.defense.max || statsMap.defense <= Number(stats.defense.max));
+        });
+      }
+
+      setFilteredPokemons(filtered);
+      setCurrentPage(1);
+    }
+  }, [filters, allPokemonData]);
+
   // Funciones para manejar filtros
   const updateFilter = (name, value) => {
     setFilters(prevFilters => ({
@@ -124,64 +238,21 @@ export const usePokemon = () => {
     setCurrentPage(1);
     
     try {
-      let results = [...allPokemonReferences];
+      // Usar los datos ya cargados en lugar de hacer nuevas peticiones
+      let dataToFilter = [...allPokemonData];
       
-      // Si no hay filtros aplicados, cargar todos los Pokémon disponibles
-      const hasFilters = Object.values(filters).some(value => value && value.toString().trim() !== '');
+      // Aplicar filtros a los datos disponibles
+      const filteredData = applyFilters(dataToFilter, filters);
       
-      if (!hasFilters) {
-        // Sin filtros: cargar una cantidad razonable de Pokémon (250 para incluir más generaciones)
-        const allIds = Array.from({ length: Math.min(250, PAGINATION.MAX_POKEMON_ID) }, (_, i) => i + 1);
-        const detailedPokemons = await PokemonService.getPokemonByIds(allIds);
-        
-        // Agregar información de generación
-        const pokemonsWithGeneration = detailedPokemons.map(pokemon => ({
-          ...pokemon,
-          generation: getGenerationById(pokemon.id)
-        }));
-        
-        // Aplicar ordenamiento
-        const sortedResults = sortPokemons(pokemonsWithGeneration, sortConfig);
-        setFilteredPokemons(sortedResults);
-        
-      } else {
-        // Con filtros: aplicar lógica de filtrado existente
-        
-        // Pre-filtrar por ID y nombre para optimizar
-        if (filters.id) {
-          results = results.filter(p => p.url.split('/')[6] === filters.id);
-        }
-        
-        if (filters.nombre) {
-          results = results.filter(p => 
-            p.name.toLowerCase().includes(filters.nombre.toLowerCase())
-          );
-        }
-        
-        // Obtener detalles de los Pokémon filtrados
-        const pokemonIds = results.map(p => parseInt(p.url.split('/')[6]));
-        const detailedPokemons = await PokemonService.getPokemonByIds(pokemonIds);
-        
-        // Agregar información de generación
-        const pokemonsWithGeneration = detailedPokemons.map(pokemon => ({
-          ...pokemon,
-          generation: getGenerationById(pokemon.id)
-        }));
-        
-        // Aplicar filtros restantes
-        let filteredResults = applyFilters(pokemonsWithGeneration, filters);
-        
-        // Aplicar ordenamiento
-        filteredResults = sortPokemons(filteredResults, sortConfig);
-        
-        setFilteredPokemons(filteredResults);
-      }
+      // Aplicar ordenamiento
+      const sortedData = sortPokemons(filteredData, sortConfig);
+      
+      setFilteredPokemons(sortedData);
+      setLoading(false);
       
     } catch (err) {
       setError(err.message);
       console.error('Error applying filters:', err);
-      setFilteredPokemons([]);
-    } finally {
       setLoading(false);
     }
   };
@@ -199,24 +270,27 @@ export const usePokemon = () => {
     setCurrentPage(Math.max(1, Math.min(page, totalPages)));
   };
 
-  // Función para cargar más Pokémon (hasta 500)
-  const loadMorePokemon = async () => {
+  // Buscar Pokémon por nombre exacto usando la API
+  const searchPokemonByName = async (name) => {
     setLoading(true);
+    setError(null);
     try {
-      const moreIds = Array.from({ length: Math.min(500, PAGINATION.MAX_POKEMON_ID) }, (_, i) => i + 1);
-      const morePokemons = await PokemonService.getPokemonByIds(moreIds);
-      
-      const pokemonsWithGeneration = morePokemons.map(pokemon => ({
-        ...pokemon,
-        generation: getGenerationById(pokemon.id)
-      }));
-      
-      const sortedResults = sortPokemons(pokemonsWithGeneration, sortConfig);
-      setFilteredPokemons(sortedResults);
-      
+      if (!name) {
+        // Si el campo está vacío, restaurar el listado local
+        applyFiltersAndSort();
+        return;
+      }
+      const result = await PokemonService.getPokemonByName(name);
+      if (result) {
+        setFilteredPokemons([{ ...result, generation: getGenerationById(result.id) }]);
+      } else {
+        setFilteredPokemons([]); // No encontrado
+      }
+      setCurrentPage(1);
+      setLoading(false);
     } catch (err) {
-      setError('Error al cargar más Pokémon: ' + err.message);
-    } finally {
+      setError(err.message);
+      setFilteredPokemons([]);
       setLoading(false);
     }
   };
@@ -231,6 +305,11 @@ export const usePokemon = () => {
     currentPage,
     totalPages,
     
+    // Estados de carga por lotes
+    loadingProgress,
+    totalToLoad,
+    loadedCount,
+    
     // Funciones
     updateFilter,
     updateSortConfig,
@@ -239,11 +318,12 @@ export const usePokemon = () => {
     goToNextPage,
     goToPrevPage,
     goToPage,
-    loadMorePokemon,
+    searchPokemonByName,
     
     // Información adicional
     hasResults: pokemons.length > 0,
-    totalResults: filteredPokemons.length,
-    canLoadMore: filteredPokemons.length < 500 && filteredPokemons.length >= 200
+    totalResults: totalToLoad, // Mostrar el total que se va a cargar
+    actualResults: filteredPokemons.length, // Los que realmente están cargados y filtrados
+    isFullyLoaded: loadedCount >= totalToLoad
   };
 };
